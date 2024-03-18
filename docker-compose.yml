@@ -1,0 +1,31 @@
+services:
+  dev:
+    build: .
+    container_name: rf-cascade-tool-dev
+    volumes:
+      - .:/workspace
+    environment:
+      - POSTGRES_HOST=rf-cascade-tool-db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=rfcascade
+      - CLEAR_DB=True
+    ports:
+      - 5000:5000
+    command: sleep infinity
+
+  db:
+    image: postgres:13.13
+    container_name: rf-cascade-tool-db
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=rfcascade
+    volumes:
+      - data:/var/lib/postgresql/data
+
+volumes:
+  data:
