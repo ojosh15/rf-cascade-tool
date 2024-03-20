@@ -14,16 +14,17 @@ Project rf_cascade_tool {
 
 Table projects {
   id integer [primary key]
-  name varchar
+  name varchar [unique, not null]
   description varchar [null]
   created_at timestamp
+  last_modified timestamp
 }
 
 Table paths {
   id integer [primary key]
-  project_id integer
-  input varchar [note: 'Typically a jack number, but could be a particular component or an antenna.']
-  output varchar [note: 'Typically a jack number, but could be a particular component or an antenna.']
+  project_id integer [foreign key]
+  input varchar [not null, note: 'Typically a jack number, but could be a particular component or an antenna.']
+  output varchar [not null, note: 'Typically a jack number, but could be a particular component or an antenna.']
   description varchar [null]
 }
 
@@ -32,7 +33,7 @@ Table components {
   model varchar(50)
   manufacturer varchar(50)
   type_id integer
-  source source_type
+  source SourceEnum
   start_freq integer
   stop_freq integer
   gain json [note: 'JSON format = {Freq(Hz): value(dB)}']
@@ -56,7 +57,7 @@ Table component_versions {
   model varchar(50)
   manufacturer varchar(50)
   type_id integer
-  source source_type
+  source SourceEnum
   start_freq integer
   stop_freq integer
   gain json [note: 'JSON format = {Freq(Hz): value(dB)}']
@@ -74,28 +75,25 @@ Table component_versions {
   created_at timestamp
 }
 
-Table types {
+Table component_types {
   id integer [primary key]
-  type varchar(50)
+  type varchar(50) [unique, not null]
 }
 
-Table path_stackup {
+Table stackups {
+  id integer [primary key]
   path_id integer 
   component_id integer
-  component_order integer [unique, not null, default: 0]
-  
-  indexes {
-    (path_id, component_id) [pk]
-  }
+  position integer [unique, not null, default: 0]
 }
 
-Enum source_type {
+Enum SourceEnum {
   simulated
   measured
 }
 
 Ref: paths.project_id > projects.id // many-to-one
-Ref: path_stackup.path_id > paths.id
-Ref: path_stackup.component_id > components.id
-Ref: components.type_id > types.id
+Ref: stackups.path_id > paths.id
+Ref: stackups.component_id > components.id
+Ref: components.type_id > component_types.id
 Ref: components.id < component_versions.component_id
