@@ -1,9 +1,9 @@
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime
 
 from pydantic import ConfigDict, BaseModel as PydanticBase
-from sqlalchemy import event, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.models import SQLAlchemyBase
 
@@ -14,12 +14,9 @@ class Project(SQLAlchemyBase):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(unique=True)
     description: Mapped[Optional[str]] = mapped_column()
-    created_at: Mapped[datetime] = mapped_column(insert_default=datetime.now(timezone.utc),default=None)
-    last_modified: Mapped[datetime] = mapped_column(default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-
-@event.listens_for(Project, 'before_update')
-def set_last_modified(mapper, connection, target):
-    target.last_modified = datetime.now(timezone.utc)
+    created_at: Mapped[datetime] = mapped_column(default=func.current_timestamp())
+    last_modified: Mapped[datetime] = mapped_column(default=func.current_timestamp(), onupdate=func.current_timestamp())
+    paths = relationship("Path", order_by="Path.id", back_populates="project")
 
 # Pydantic Models
 class ProjectInputModel(PydanticBase):

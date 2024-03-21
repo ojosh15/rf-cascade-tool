@@ -4,6 +4,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.orderinglist import ordering_list
 
+from pydantic import ConfigDict, BaseModel as PydanticBase
 from database.models import SQLAlchemyBase
 from database.models.stackups import Stackup
 
@@ -24,3 +25,14 @@ class Path(SQLAlchemyBase):
     # Relationships
     components: Mapped[List["Stackup"]] = relationship(order_by="Stackup.position",
                               collection_class=ordering_list('position'))
+    project = relationship("Project", back_populates="paths")
+
+# Pydantic Models
+class PathInputModel(PydanticBase):
+    input: str
+    output: str
+    description: Optional[str]
+
+class PathResponseModel(PathInputModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
