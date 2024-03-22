@@ -8,7 +8,7 @@ from database import Session
 from database.models.projects import Project, ProjectResponseModel, ProjectInputModel
 from database.models.paths import Path, PathInputModel, PathResponseModel
 
-router = APIRouter()
+router = APIRouter(prefix="/projects", tags=["Projects"])
 
 def create_project(body: dict):
     with Session() as session, session.begin():
@@ -49,7 +49,7 @@ def update_project(id: int, body: dict):
     return create_project(body)
 
 
-@router.get("/projects", response_model=list[ProjectResponseModel], tags=["Projects"])
+@router.get("", response_model=list[ProjectResponseModel])
 def get_projects(name: str|None = None):
     """Get projects"""
     with Session() as session, session.begin():
@@ -64,19 +64,19 @@ def get_projects(name: str|None = None):
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Project with name: {name}, not found")
     return projects
 
-@router.delete("/projects", tags=["Projects"])
+@router.delete("")
 def delete_projects():
     """Delete projects"""
     with Session() as session, session.begin():
         session.query(Project).delete()
 
 
-@router.post("/project", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel, tags=["Project"])
+@router.post("", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel)
 def post_project(body: ProjectInputModel):
     """Create project"""
     return create_project(body.model_dump())
 
-@router.get("/project/{project_id}", response_model=ProjectResponseModel, tags=["Project"])
+@router.get("/{project_id}", response_model=ProjectResponseModel)
 def get_project(project_id: int):
     """Get project with `project_id`"""
     with Session() as session, session.begin():
@@ -84,15 +84,15 @@ def get_project(project_id: int):
         project = session.execute(stmt).scalar_one_or_none()
         if project is None:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
-        projects = ProjectResponseModel.model_validate(project)
-    return projects
+        project = ProjectResponseModel.model_validate(project)
+    return project
 
-@router.put("/project/{project_id}", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel, tags=["Project"])
+@router.put("/{project_id}", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel)
 def put_project(project_id: int, body: ProjectInputModel):
     """Update project with `project_id`"""
     return update_project(project_id, body.model_dump())
 
-@router.delete("/project/{project_id}", tags=["Project"])
+@router.delete("/{project_id}")
 def delete_project(project_id: int):
     """Delete project with `project_id`"""
     with Session() as session, session.begin():
@@ -103,7 +103,7 @@ def delete_project(project_id: int):
         session.delete(project)
 
 
-@router.get("/project/{project_id}/paths", response_model=list[PathResponseModel], tags=["Project"])
+@router.get("/{project_id}/paths", response_model=list[PathResponseModel])
 def get_project_paths(project_id: int):
     """Get paths for project with `project_id`"""
     with Session() as session, session.begin():
@@ -115,9 +115,47 @@ def get_project_paths(project_id: int):
         paths = [PathResponseModel.model_validate(path) for path in paths]
     return paths
 
-@router.delete("/project/{project_id}/paths", tags=["Project"])
+@router.delete("/{project_id}/paths")
 def delete_project_paths(project_id: int):
     """Delete paths for project with `project_id`"""
+    with Session() as session, session.begin():
+        stmt = select(Path).where(Path.project_id == project_id)
+        paths = session.execute(stmt).scalars().all()
+        if paths is None:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+        session.delete(paths)
+
+def create_path(project_id: int, body: dict):
+    with Session() as session, session.begin():
+        path = Path(**body,project_id=project_id)
+        try:
+            session.add(path)
+            session.flush()  # Needed to get the autoincremented id into the path object
+        except IntegrityError as e:
+            err_msg = str(e)
+
+            # If the radio already exists, raise a 409 Conflict
+            if "UniqueViolation" in err_msg:
+                raise HTTPException(status_code=HTTPStatus.CONFLICT)
+
+            # If it wasn't a unique or foreign key constraint, something else went wrong
+            raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
+
+        return path
 
 
-# @router.get("/project/{project_id}/path/")
+@router.post("/{project_id}/paths", status_code=HTTPStatus.CREATED, response_model=PathResponseModel)
+def post_path(project_id: int, body: PathInputModel):
+    """Create path for project with `project_id`"""
+    return create_path(project_id,body.model_dump())
+
+@router.get("/projects/{project_id}/paths/{path_id}")
+def get_project_path(project_id: int, path_id: int):
+    """Get path with `path_id` from project with `project_id`"""
+    with Session() as session, session.begin():
+        stmt = select(Project).join(Path,Project.id == Path.project_id).where(Path.id == path_id)
+        path = session.execute(stmt).scalar_one_or_none()
+        if path is None:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+        path = PathResponseModel.model_validate(path)
+    return path
