@@ -7,7 +7,7 @@ from sqlalchemy.ext.orderinglist import ordering_list
 
 from pydantic import ConfigDict, BaseModel as PydanticBase
 from database.models import SQLAlchemyBase
-from database.models.stackups import Stackup
+from database.models.stackups import Stackup, StackupResponseModel
 
 class Path(SQLAlchemyBase):
     __tablename__ = "paths"
@@ -26,7 +26,7 @@ class Path(SQLAlchemyBase):
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id",ondelete="CASCADE"))
 
     # Relationships
-    components: Mapped[List["Stackup"]] = relationship(order_by="Stackup.position",
+    stackup: Mapped[List["Stackup"]] = relationship(order_by="Stackup.position",
                               collection_class=ordering_list('position'))
     project = relationship("Project", back_populates="paths")
 
@@ -40,4 +40,5 @@ class PathResponseModel(PathInputModel):
     created_at: datetime
     last_modified: datetime
     model_config = ConfigDict(from_attributes=True)
+    stackup: List[StackupResponseModel]
     id: int

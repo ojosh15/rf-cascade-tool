@@ -10,6 +10,7 @@ from database.models.stackups import Stackup, StackupInputModel, StackupResponse
 
 router = APIRouter(prefix='/paths', tags=["Paths"])
 
+
 @router.get("", response_model=list[PathResponseModel])
 def get_paths():
     """Get all paths"""
@@ -19,6 +20,7 @@ def get_paths():
         paths = [PathResponseModel.model_validate(path) for path in paths]
     return paths
 
+
 @router.get("/{path_id}/stackups", response_model=list[StackupResponseModel])
 def get_project_path_stackups(path_id: int):
     """Get stackups from path with `path_id` in project with `project_id`"""
@@ -27,6 +29,7 @@ def get_project_path_stackups(path_id: int):
         stackups = session.execute(stmt).scalars().all()
         stackups = [StackupResponseModel.model_validate(stackup) for stackup in stackups]
     return stackups
+
 
 @router.post("/{path_id}/stackups", status_code=HTTPStatus.CREATED, response_model=StackupResponseModel)
 def create_stackup(path_id: int, body: StackupInputModel):

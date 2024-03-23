@@ -4,7 +4,7 @@ from sqlalchemy import ForeignKey, func, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.models import SQLAlchemyBase
-from database.models.components import Component
+from database.models.components import Component, ComponentResponseModel
 from pydantic import ConfigDict, BaseModel as PydanticBase
 
 class Stackup(SQLAlchemyBase):
@@ -19,7 +19,7 @@ class Stackup(SQLAlchemyBase):
     last_modified: Mapped[datetime] = mapped_column(default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # # Relationships
-    # component: Mapped["Component"] = relationship()
+    component: Mapped["Component"] = relationship("Component")
 
     # Constraints
     __table_args__ = (
@@ -36,4 +36,5 @@ class StackupResponseModel(StackupInputModel):
     created_at: datetime
     last_modified: datetime
     model_config = ConfigDict(from_attributes=True)
+    component: ComponentResponseModel
     id: int
