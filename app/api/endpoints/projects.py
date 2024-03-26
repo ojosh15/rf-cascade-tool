@@ -1,58 +1,50 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 
 from database import Session
 from database.models.projects import Project, ProjectResponseModel, ProjectInputModel
-from database.models.paths import Path, PathInputModel, PathResponseModel
-from database.models.stackups import Stackup, StackupInputModel, StackupResponseModel
+from database.models.paths import Path, PathInputModel, PathResponseModel, Stackup, StackupInputModel, StackupResponseModel
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
 @router.get("", response_model=list[ProjectResponseModel])
-def get_projects(name: str|None = None):
-    """Get projects"""
+def get_projects():
+    """Get all projects"""
     with Session() as session, session.begin():
-        if name:
-            stmt = select(Project).where(Project.name == name)
-        else:
-            stmt = select(Project)
-        projects = session.execute(stmt).scalars().all()
-        if projects:
-            projects = [ProjectResponseModel.model_validate(project) for project in projects]
-        elif name:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with name: {name}")
+        projects = session.query(Project).all()
+        projects = [ProjectResponseModel.model_validate(project) for project in projects]
     return projects
 
 
 @router.delete("")
 def delete_projects():
-    """Delete projects"""
+    """Delete all projects"""
     with Session() as session, session.begin():
-        num_deleted = session.query(Project).delete()
-        if num_deleted == 0:
-            raise HTTPException(HTTPStatus.NOT_FOUND, detail=f"No projects found")
+        num_deleted = session.query(Project).delete()       
+    return {"num_deleted": num_deleted}
 
 
 @router.post("", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel)
 def post_project(body: ProjectInputModel):
-    """Create project"""
+    """Create a project"""
     with Session() as session, session.begin():
         project = Project(**body.model_dump())
         try:
             session.add(project)
-            session.flush()
+            session.flush() # Update database if changes from session (needed for autoincremented ID)
+            project = ProjectResponseModel.model_validate(project)
         except IntegrityError as e:
             err_msg = str(e)
 
             # If the project already exists, raise a 409 Conflict
             if "UniqueViolation" in err_msg:
-                raise HTTPException(status_code=HTTPStatus.CONFLICT)
+                raise HTTPException(status_code=HTTPStatus.CONFLICT, detail=f"Project with name: {project.name} already exists")
 
-            # If it wasn't a unique or foreign key constraint, something else went wrong
+            # If it wasn't a unique constraint, something else went wrong
             raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
     return project
 
@@ -61,8 +53,7 @@ def post_project(body: ProjectInputModel):
 def get_project(project_id: int):
     """Get project with `project_id`"""
     with Session() as session, session.begin():
-        stmt = select(Project).where(Project.id == project_id)
-        project = session.execute(stmt).scalar_one_or_none()
+        project = session.query(Project).filter(Project.id == project_id).one_or_none()
         if project is None:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
         project = ProjectResponseModel.model_validate(project)
@@ -73,8 +64,7 @@ def get_project(project_id: int):
 def put_project(project_id: int, body: ProjectInputModel):
     """Update project with `project_id`"""
     with Session() as session, session.begin():
-        stmt = select(Project).where(Project.id == project_id)
-        project = session.execute(stmt).scalar_one_or_none()
+        project = session.query(Project).filter(Project.id == project_id).one_or_none()
         if project is None:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
         for field, value in body.model_dump().items():
@@ -87,7 +77,11 @@ def put_project(project_id: int, body: ProjectInputModel):
         except IntegrityError as e:
             err_msg = str(e)
 
-            # If it wasn't a unique or foreign key constraint, something else went wrong
+            # If the project already exists, raise a 409 Conflict
+            if "UniqueViolation" in err_msg:
+                raise HTTPException(status_code=HTTPStatus.CONFLICT, detail=f"Project with name: {project.name} already exists")
+            
+            # If it wasn't a unique constraint, something else went wrong
             raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
     return project
 
@@ -99,18 +93,17 @@ def delete_project(project_id: int):
         num_deleted = session.query(Project).filter(Project.id == project_id).delete()
         if num_deleted == 0:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
+    return {"num_deleted": num_deleted}
 
 
 @router.get("/{project_id}/paths", response_model=list[PathResponseModel])
 def get_project_paths(project_id: int):
     """Get paths for project with `project_id`"""
     with Session() as session, session.begin():
-        stmt = select(Project).where(Project.id == project_id)
-        project = session.execute(stmt).scalar_one_or_none()
+        project = session.query(Project).filter(Project.id == project_id).one_or_none()
         if project is None:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
-        paths = project.paths
-        paths = [PathResponseModel.model_validate(path) for path in paths]
+        paths = [PathResponseModel.model_validate(path) for path in project.paths]
     return paths
 
 
@@ -118,24 +111,37 @@ def get_project_paths(project_id: int):
 def delete_project_paths(project_id: int):
     """Delete paths for project with `project_id`"""
     with Session() as session, session.begin():
-        num_deleted = session.query(Path).filter(Path.project_id == project_id).delete()
-        if num_deleted == 0:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No paths found for project ID: {project_id}")
+        project = session.query(Project).filter(Project.id == project_id).one_or_none()
+        if project is None:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
+        initial_path_count = len(project.paths)
+        
+        # Delete associated paths for project
+        for path in project.paths:
+            session.delete(path)
+
+        num_deleted = initial_path_count - len(project.paths) # Get the number of paths deleted
+        project.last_modified = func.current_timestamp()
+    return {"num_deleted": num_deleted}
+        
         
 
 @router.post("/{project_id}/paths", status_code=HTTPStatus.CREATED, response_model=PathResponseModel)
 def post_path(project_id: int, body: PathInputModel):
     """Create path for project with `project_id`"""
     with Session() as session, session.begin():
+        project = session.query(Project).filter(Project.id == project_id).one_or_none()
+        if project is None:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
+        
         path = Path(**body.model_dump(),project_id=project_id)
         try:
             session.add(path)
             session.flush()
         except IntegrityError as e:
             err_msg = str(e)
-
-            # If it wasn't a unique or foreign key constraint, something else went wrong
             raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
+        project.last_modified = func.current_timestamp()
         path = PathResponseModel.model_validate(path)
     return path
 
@@ -144,8 +150,7 @@ def post_path(project_id: int, body: PathInputModel):
 def get_project_path(project_id: int, path_id: int):
     """Get path with `path_id` from project with `project_id`"""
     with Session() as session, session.begin():
-        stmt = select(Path).where(Path.project_id == project_id, Path.id == path_id,)
-        path = session.execute(stmt).scalar_one_or_none()
+        path = session.query(Path).filter(Path.project_id == project_id, Path.id == path_id).one_or_none()
         if path is None:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Path with ID: {path_id} in project with ID: {project_id} not found")
         path = PathResponseModel.model_validate(path)
@@ -156,12 +161,18 @@ def get_project_path(project_id: int, path_id: int):
 def put_project_path(project_id: int, path_id: int, body: PathInputModel):
     """Update path with `path_id` from project with `project_id`"""
     with Session() as session, session.begin():
-        stmt = select(Path).where(Path.project_id == project_id, Path.id == path_id,)
-        path = session.execute(stmt).scalar_one_or_none()
+        project = session.query(Project).filter(Project.id == project_id).one_or_none()
+        if project is None:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
+        
+        path = session.query(Path).filter(Path.project_id == project_id, Path.id == path_id).one_or_none()
         if path is None:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Path with ID: {path_id} in project with ID: {project_id} not found")
+        
         for field, value in body.model_dump().items():
-                setattr(path, field, value)
+            setattr(path, field, value)
+        path.last_modified = func.current_timestamp()
+        project.last_modified = func.current_timestamp()
         try:
             session.flush()
             path = PathResponseModel.model_validate(path)
@@ -172,3 +183,17 @@ def put_project_path(project_id: int, path_id: int, body: PathInputModel):
             # If it wasn't a unique or foreign key constraint, something else went wrong
             raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
     return path
+
+@router.delete("/{project_id}/paths/{path_id}")
+def delete_project_path(project_id: int, path_id: int):
+    """Delete path with `path_id` from project with `project_id`"""
+    with Session() as session, session.begin():
+        project = session.query(Project).filter(Project.id == project_id).one_or_none()
+        if project is None:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
+        
+        num_deleted = session.query(Path).filter(Path.project_id == project_id, Path.id == path_id).delete()
+        if num_deleted == 0:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Path with ID: {path_id} in project with ID: {project_id} not found")
+        project.last_modified = func.current_timestamp()
+    return {"num_deleted": num_deleted}

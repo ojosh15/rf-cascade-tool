@@ -5,7 +5,6 @@ from config import config
 from database.models import SQLAlchemyBase
 from database.models.projects import Project
 from database.models.paths import Path
-from database.models.stackups import Stackup
 from database.models.components import Component
 from database.models.component_types import ComponentType
 from database.models.sources import SourceEnum

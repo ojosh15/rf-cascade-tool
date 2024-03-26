@@ -12,8 +12,10 @@ from pydantic import ConfigDict, BaseModel as PydanticBase
 class Component(SQLAlchemyBase):
     __tablename__ = "components"
 
-    # Columns
+    # Primary Keys
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # Columns
     model: Mapped[str] = mapped_column(String(50))
     manufacturer: Mapped[str] = mapped_column()
     type_id: Mapped[int] = mapped_column(ForeignKey("component_types.id"))
@@ -59,8 +61,20 @@ class ComponentResponseModel(ComponentInputModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
 
-
-
+# Does not include lengthy JSON objects containing S-Parameter data
+class ComponentSmallResponseModel(PydanticBase):
+    model: str
+    manufacturer: str
+    type_id: int
+    source: SourceEnum
+    start_freq: int
+    stop_freq: int
+    is_active: bool
+    is_variable: bool
+    description: Optional[str]
+    created_at: datetime
+    last_modified: datetime
+    id: int
 
 
 
