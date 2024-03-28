@@ -121,7 +121,7 @@ def delete_project_paths(project_id: int):
             session.delete(path)
 
         num_deleted = initial_path_count - len(project.paths) # Get the number of paths deleted
-        project.last_modified = func.current_timestamp()
+        project.modified_at = func.current_timestamp()
     return {"num_deleted": num_deleted}
         
         
@@ -141,7 +141,7 @@ def post_path(project_id: int, body: PathInputModel):
         except IntegrityError as e:
             err_msg = str(e)
             raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
-        project.last_modified = func.current_timestamp()
+        project.modified_at = func.current_timestamp()
         path = PathResponseModel.model_validate(path)
     return path
 
@@ -171,8 +171,8 @@ def put_project_path(project_id: int, path_id: int, body: PathInputModel):
         
         for field, value in body.model_dump().items():
             setattr(path, field, value)
-        path.last_modified = func.current_timestamp()
-        project.last_modified = func.current_timestamp()
+        path.modified_at = func.current_timestamp()
+        project.modified_at = func.current_timestamp()
         try:
             session.flush()
             path = PathResponseModel.model_validate(path)
@@ -195,5 +195,5 @@ def delete_project_path(project_id: int, path_id: int):
         num_deleted = session.query(Path).filter(Path.project_id == project_id, Path.id == path_id).delete()
         if num_deleted == 0:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Path with ID: {path_id} in project with ID: {project_id} not found")
-        project.last_modified = func.current_timestamp()
+        project.modified_at = func.current_timestamp()
     return {"num_deleted": num_deleted}

@@ -50,7 +50,7 @@ def create_stackup(path_id: int, body: list[StackupInputModel]):
                 path.stackup[-1].next_stackup_id = stackup.id
                 session.flush()
         
-        path.last_modified = func.current_timestamp()
+        path.modified_at = func.current_timestamp()
         stackups = [StackupResponseModel.model_validate(stackup) for stackup in path.stackup]
         session.commit()       
         

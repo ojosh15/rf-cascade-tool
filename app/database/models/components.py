@@ -17,7 +17,8 @@ class Component(SQLAlchemyBase):
 
     # Columns
     model: Mapped[str] = mapped_column(String(50))
-    manufacturer: Mapped[str] = mapped_column()
+    manufacturer: Mapped[str] = mapped_column(String(50))
+    serial_no: Mapped[str] = mapped_column(String(50))
     type_id: Mapped[int] = mapped_column(ForeignKey("component_types.id"))
     source: Mapped[SourceEnum] = mapped_column(default=SourceEnum.SIMULATED)
     start_freq: Mapped[int] = mapped_column(default=0)
@@ -32,7 +33,7 @@ class Component(SQLAlchemyBase):
     is_variable: Mapped[bool] = mapped_column(Boolean,default=False)
     description: Mapped[Optional[str]] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(default=func.current_timestamp())
-    last_modified: Mapped[datetime] = mapped_column(default=func.current_timestamp(), onupdate=func.current_timestamp())
+    modified_at: Mapped[datetime] = mapped_column(default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # Relationships
     type: Mapped[ComponentType] = relationship()
@@ -57,7 +58,7 @@ class ComponentInputModel(PydanticBase):
 
 class ComponentResponseModel(ComponentInputModel):
     created_at: datetime
-    last_modified: datetime
+    modified_at: datetime
     model_config = ConfigDict(from_attributes=True)
     id: int
 
@@ -73,7 +74,7 @@ class ComponentSmallResponseModel(PydanticBase):
     is_variable: bool
     description: Optional[str]
     created_at: datetime
-    last_modified: datetime
+    modified_at: datetime
     id: int
 
 

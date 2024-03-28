@@ -18,13 +18,13 @@ class Project(SQLAlchemyBase):
     name: Mapped[str] = mapped_column(unique=True)
     description: Mapped[Optional[str]] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(default=func.current_timestamp())
-    last_modified: Mapped[datetime] = mapped_column(default=func.current_timestamp(), onupdate=func.current_timestamp())
+    modified_at: Mapped[datetime] = mapped_column(default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # Relationships
     paths: Mapped[List["Path"]] = relationship("Path", back_populates="project")
 
     def __repr__(self) -> str:
-        return f"Project(id={self.id!r}, name={self.name!r}, description={self.description!r}, created_at={self.created_at!r}, last_modified={self.last_modified!r})"
+        return f"Project(id={self.id!r}, name={self.name!r}, description={self.description!r}, created_at={self.created_at!r}, modified_at={self.modified_at!r})"
 
 # Pydantic Models
 class ProjectInputModel(PydanticBase):
@@ -33,6 +33,6 @@ class ProjectInputModel(PydanticBase):
 
 class ProjectResponseModel(ProjectInputModel):
     created_at: datetime
-    last_modified: datetime
+    modified_at: datetime
     model_config = ConfigDict(from_attributes=True)
     id: int
