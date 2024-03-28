@@ -22,6 +22,7 @@ Table projects {
 
 Table paths {
   id integer [primary key]
+  project_id integer [foreign key]
   input varchar [not null, note: 'Typically a jack number, but could be a particular component or an antenna.']
   output varchar [not null, note: 'Typically a jack number, but could be a particular component or an antenna.']
   description varchar [null]
@@ -34,9 +35,10 @@ Table components {
   model varchar(50)
   manufacturer varchar(50)
   serial_no varchar(50)
-  type_id integer
+  component_type_id integer
+  start_freq integer
+  stop_freq integer
   num_ports integer [default: 2]
-  
   is_active bool
   is_variable bool [note: '''Some components have variable gain
   and the models will need to update dynamically/perform analyses at
@@ -58,8 +60,6 @@ Table component_versions {
 Table component_data {
   id integer [primary key]
   data_source SourceEnum
-  start_freq integer
-  stop_freq integer
   gain json [note: 'JSON format = {Freq(Hz): value(dB)}']
   nf json [note: 'JSON format = {Freq(Hz): value(dB)}']
   p1db json [note: 'JSON format = {Freq(Hz): value(dB)}, DB will store p1db output by default']
@@ -86,13 +86,7 @@ Table stackups {
   path_id integer [foreign key]
   component_version_id integer [foreign key]
   next_stackup_id integer [unique, null, foreign key]
-}
-
-Table project_paths {
-  id integer [primary key]
-  project_id integer [foreign key]
-  path_id integer [foreign key]
-} 
+} //
 
 Enum SourceEnum {
   simulated
@@ -100,11 +94,10 @@ Enum SourceEnum {
 }
 
 // Many-to-one/one-to-many Relationships
-Ref: paths.id < project_paths.path_id
-Ref: projects.id < project_paths.project_id 
+Ref: projects.id < paths.project_id
 Ref: stackups.path_id > paths.id 
 Ref: stackups.component_version_id > component_versions.id 
-Ref: components.type_id > component_types.id 
+Ref: components.component_type_id > component_types.id 
 Ref: components.id < component_versions.component_id 
 Ref: component_data.id < component_versions.component_data_id 
 Ref: stackups.next_stackup_id > stackups.id

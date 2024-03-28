@@ -4,9 +4,8 @@ from sqlalchemy.orm import sessionmaker
 from config import config
 from database.models import SQLAlchemyBase
 from database.models.projects import Project
-from database.models.paths import Path
-from database.models.components import Component
-from database.models.component_types import ComponentType
+from database.models.paths import Path, Stackup
+from database.models.components import Component, ComponentData, ComponentVersion, ComponentType, DataSheet
 from database.models.sources import SourceEnum
 
 
@@ -29,4 +28,13 @@ with Session() as session, session.begin():
         type_instance = ComponentType(type=type)
         session.add(type_instance)
 
-    
+    component_data = ComponentData(
+      data_source = SourceEnum.SIMULATED,
+      gain = {},
+      nf = {},
+      p1db = {},
+      ip2 = {},
+      ip3 = {},
+      max_input = {}
+    )
+    session.add(component_data)

@@ -7,7 +7,7 @@ from sqlalchemy.ext.orderinglist import ordering_list
 
 from pydantic import ConfigDict, BaseModel as PydanticBase
 from database.models import SQLAlchemyBase
-from database.models.components import Component, ComponentResponseModel
+from database.models.components import ComponentVersion, ComponentResponseModel
 
 class Path(SQLAlchemyBase):
     __tablename__ = "paths"
@@ -26,7 +26,7 @@ class Path(SQLAlchemyBase):
     modified_at: Mapped[datetime] = mapped_column(default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # Relationships
-    stackup: Mapped[List["Stackup"]] = relationship("Stackup", back_populates="path")
+    stackups: Mapped[List["Stackup"]] = relationship("Stackup", back_populates="path")
     project = relationship("Project", back_populates="paths")
 
     def __repr__(self) -> str:
@@ -40,13 +40,13 @@ class Stackup(SQLAlchemyBase):
 
     # Foreign Keys
     path_id: Mapped[int] = mapped_column(ForeignKey("paths.id"))
-    component_id: Mapped[int] = mapped_column(ForeignKey("components.id"))
+    component_version_id: Mapped[int] = mapped_column(ForeignKey("component_versions.id"))
     next_stackup_id: Mapped[Optional[int]] = mapped_column(ForeignKey("stackups.id"), unique=True)
 
     # Relationships
-    component: Mapped["Component"] = relationship("Component")
+    component_version: Mapped["ComponentVersion"] = relationship("ComponentVersion")
     next_stackup: Mapped[Optional["Stackup"]] = relationship("Stackup", remote_side=[id], foreign_keys=[next_stackup_id], uselist=False)
-    path: Mapped["Path"] = relationship("Path", back_populates="stackup")
+    path: Mapped["Path"] = relationship("Path", back_populates="stackups")
 
     def __repr__(self) -> str:
         return f"Stackup(id={self.id!r})"

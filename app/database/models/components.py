@@ -1,13 +1,13 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, JSON, String, Boolean, func
+from sqlalchemy import ForeignKey, JSON, String, Boolean, BigInteger, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.models import SQLAlchemyBase
 from database.models.sources import SourceEnum
-from database.models.component_types import ComponentType
 from pydantic import ConfigDict, BaseModel as PydanticBase
+
 
 class Component(SQLAlchemyBase):
     __tablename__ = "components"
@@ -15,20 +15,16 @@ class Component(SQLAlchemyBase):
     # Primary Keys
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
+    # Foreign Keys
+    component_type_id: Mapped[int] = mapped_column(ForeignKey("component_types.id"))
+
     # Columns
     model: Mapped[str] = mapped_column(String(50))
     manufacturer: Mapped[str] = mapped_column(String(50))
     serial_no: Mapped[str] = mapped_column(String(50))
-    type_id: Mapped[int] = mapped_column(ForeignKey("component_types.id"))
-    source: Mapped[SourceEnum] = mapped_column(default=SourceEnum.SIMULATED)
-    start_freq: Mapped[int] = mapped_column(default=0)
-    stop_freq: Mapped[int] = mapped_column(default=18e9)
-    gain: Mapped[Optional[dict]] = mapped_column(JSON)
-    nf: Mapped[Optional[dict]] = mapped_column(JSON)
-    ip2: Mapped[Optional[dict]] = mapped_column(JSON)
-    ip3: Mapped[Optional[dict]] = mapped_column(JSON)
-    p1db: Mapped[Optional[dict]] = mapped_column(JSON)
-    max_input: Mapped[Optional[dict]] = mapped_column(JSON)
+    num_ports: Mapped[int] = mapped_column(default=2)
+    start_freq: Mapped[BigInteger] = mapped_column(BigInteger, default=0)
+    stop_freq: Mapped[BigInteger] = mapped_column(BigInteger, default=18e9)
     is_active: Mapped[bool] = mapped_column(Boolean,default=False)
     is_variable: Mapped[bool] = mapped_column(Boolean,default=False)
     description: Mapped[Optional[str]] = mapped_column()
@@ -36,25 +32,105 @@ class Component(SQLAlchemyBase):
     modified_at: Mapped[datetime] = mapped_column(default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # Relationships
-    type: Mapped[ComponentType] = relationship()
+    type: Mapped["ComponentType"] = relationship("ComponentType")
+    component_versions: Mapped[List["ComponentVersion"]] = relationship("ComponentVersion", back_populates="component")
+    data_sheets: Mapped[List["DataSheet"]] = relationship("DataSheet", back_populates="component")
 
-# Pydantic models
+
+class ComponentVersion(SQLAlchemyBase):
+    __tablename__ = "component_versions"
+
+    # Primary Keys
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # Foreign Keys
+    component_id: Mapped[int] = mapped_column(ForeignKey("components.id"))
+    component_data_id: Mapped[int] = mapped_column(ForeignKey("component_data.id"))
+
+    # Columns
+    version: Mapped[int] = mapped_column()
+    change_note: Mapped[str] = mapped_column()
+    is_verified: Mapped[bool] = mapped_column()
+
+    # Relationships
+    component: Mapped["Component"] = relationship("Component", back_populates="component_versions")
+    component_data: Mapped["ComponentData"] = relationship("ComponentData", back_populates="component_version")
+
+
+
+class ComponentData(SQLAlchemyBase):
+    __tablename__ = "component_data"
+
+    # Primary Keys
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # Columns
+    data_source: Mapped[SourceEnum] = mapped_column(default=SourceEnum.SIMULATED)
+    gain: Mapped[Optional[dict]] = mapped_column(JSON)
+    nf: Mapped[Optional[dict]] = mapped_column(JSON)
+    ip2: Mapped[Optional[dict]] = mapped_column(JSON)
+    ip3: Mapped[Optional[dict]] = mapped_column(JSON)
+    p1db: Mapped[Optional[dict]] = mapped_column(JSON)
+    max_input: Mapped[Optional[dict]] = mapped_column(JSON)
+
+    # Relationships
+    component_version: Mapped["ComponentVersion"] = relationship("ComponentVersion", back_populates="component_data")
+
+
+class DataSheet(SQLAlchemyBase):
+    __tablename__ = "data_sheets"
+    
+    # Primary Keys
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # Foreign Keys
+    component_id: Mapped[int] = mapped_column(ForeignKey("components.id"))
+
+    # Columns
+    name: Mapped[str] = mapped_column(unique=True)
+    extension: Mapped[str] = mapped_column()
+    mime_type: Mapped[str] = mapped_column()
+    file_path: Mapped[str] = mapped_column(unique=True)
+
+    # Relationships
+    component: Mapped["Component"] = relationship("Component", back_populates="data_sheets")
+
+
+class ComponentType(SQLAlchemyBase):
+    __tablename__ = "component_types"
+
+    # Primary Keys
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # Columns
+    type: Mapped[str] = mapped_column(String(50), unique=True)
+
+    def __repr__(self) -> str:
+        return f"ComponentType(id={self.id!r}, type={self.type!r})"
+
+
+# Pydantic Models
+class ComponentTypeInputModel(PydanticBase):
+    type: str
+
+
+class ComponentTypeResponseModel(ComponentTypeInputModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
 class ComponentInputModel(PydanticBase):
     model: str
     manufacturer: str
-    type_id: int
-    source: SourceEnum
-    start_freq: int
-    stop_freq: int
-    gain: Optional[dict]
-    nf: Optional[dict]
-    p1db: Optional[dict]
-    ip2: Optional[dict]
-    ip3: Optional[dict]
-    max_input: Optional[dict]
-    is_active: bool
-    is_variable: bool
+    serial_no: str
+    component_type_id: int
+    num_ports: int = 2
+    start_freq: int = 0
+    stop_freq: int = 18e9
+    is_active: bool = False
+    is_variable: bool = False
     description: Optional[str]
+
 
 class ComponentResponseModel(ComponentInputModel):
     created_at: datetime
@@ -62,19 +138,36 @@ class ComponentResponseModel(ComponentInputModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
 
-# Does not include lengthy JSON objects containing S-Parameter data
-class ComponentSmallResponseModel(PydanticBase):
-    model: str
-    manufacturer: str
-    type_id: int
-    source: SourceEnum
-    start_freq: int
-    stop_freq: int
-    is_active: bool
-    is_variable: bool
-    description: Optional[str]
-    created_at: datetime
-    modified_at: datetime
+
+class ComponentDataInputModel(PydanticBase):
+    data_source: SourceEnum
+    gain: Optional[dict]
+    nf: Optional[dict]
+    p1db: Optional[dict]
+    ip2: Optional[dict]
+    ip3: Optional[dict]
+    max_input: Optional[dict]
+
+
+class ComponentDataResponseModel(ComponentDataInputModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
+class ComponentVersionInputModel(PydanticBase):
+    change_note: str = "Initial component version"
+    component_data_id: int = 1
+    # version - incremented through endpoint logic
+    # is_verified - set to false by endpoint
+    # component_id - derived from endpoint URL path parameters
+    
+
+class ComponentVersionResponseModel(ComponentVersionInputModel):
+    model_config = ConfigDict(from_attributes=True)
+    version: int
+    is_verified: bool
+    component_id: int
+    component_data: ComponentDataResponseModel
     id: int
 
 
