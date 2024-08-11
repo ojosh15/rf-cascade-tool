@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 from database import get_db
 from database.models.paths import *
+from database.models.stackups import *
 from database.models.projects import *
 
 router = APIRouter(prefix='/paths', tags=["Paths"])

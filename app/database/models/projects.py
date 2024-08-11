@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 
 from pydantic import ConfigDict, BaseModel as PydanticBase
@@ -6,7 +6,9 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database.models import SQLAlchemyBase
-from database.models.paths import Path
+
+if TYPE_CHECKING:
+    from database.models.paths import Path
 
 class Project(SQLAlchemyBase):
     __tablename__ = "projects"
@@ -28,11 +30,17 @@ class Project(SQLAlchemyBase):
 
 # Pydantic Models
 class ProjectInputModel(PydanticBase):
+    model_config = ConfigDict(from_attributes=True)
     name: str
-    description: Optional[str]
+    description: str | None = None
 
 class ProjectResponseModel(ProjectInputModel):
+    model_config = ConfigDict(from_attributes=True)
     created_at: datetime
     modified_at: datetime
-    model_config = ConfigDict(from_attributes=True)
     id: int
+
+class ProjectPatchModel(PydanticBase):
+    model_config = ConfigDict(from_attributes=True)
+    name: str | None = None
+    description: str | None = None

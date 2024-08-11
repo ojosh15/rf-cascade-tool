@@ -7,6 +7,7 @@ from database.models.projects import *
 from database.models.paths import *
 from database.models.components import *
 from database.models.sources import *
+from database.models.stackups import *
 
 
 # Log in to the database and create tables
