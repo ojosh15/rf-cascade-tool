@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 
 
 class Config(BaseSettings):
-    API_PREFIX: str = "/api/v1"
+    API_PREFIX: str = "/api"
 
     # Postgres Params
     POSTGRES_HOST: str = Field(default=...)
