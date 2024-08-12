@@ -58,14 +58,15 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     return project
 
 
-@router.put("/{project_id}", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel)
-def put_project(project_id: int, body: ProjectInputModel, db: Session = Depends(get_db)):
+@router.patch("/{project_id}", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel)
+def patch_project(project_id: int, body: ProjectPatchModel, db: Session = Depends(get_db)):
     """Update project with `project_id`"""
     project = db.query(Project).filter(Project.id == project_id).one_or_none()
     if project is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
     for field, value in body.model_dump().items():
-        setattr(project, field, value)
+        if value is not None:
+            setattr(project, field, value)
 
     try:
         db.flush()

@@ -40,9 +40,18 @@ with LocalSession() as session, session.begin():
     )
     session.add(component_data)
 
+def create_tables():
+    SQLAlchemyBase.metadata.create_all(engine)
+
+def drop_tables():
+    SQLAlchemyBase.metadata.drop_all(engine)
+
 def get_db():
     db = LocalSession()
     try:
         yield db
+    except Exception as se:
+        db.rollback()
+        raise se
     finally:
         db.close()

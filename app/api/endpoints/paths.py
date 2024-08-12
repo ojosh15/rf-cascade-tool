@@ -16,8 +16,7 @@ router = APIRouter(prefix='/paths', tags=["Paths"])
 @router.get("", response_model=list[PathResponseModel])
 def get_paths(db: Session = Depends(get_db)):
     """Get all paths"""
-    stmt = select(Path)
-    paths = db.execute(stmt).scalars().all()
+    paths = db.query(Path).all()
     paths = [PathResponseModel.model_validate(path) for path in paths]
     return paths
 
@@ -25,7 +24,7 @@ def get_paths(db: Session = Depends(get_db)):
 @router.post("", status_code=HTTPStatus.CREATED, response_model=PathResponseModel)
 def post_path(project_id: int, body: PathInputModel, db: Session = Depends(get_db)):
     """Create path for project with `project_id`"""
-    project = db.query(Project).filter(Project.id == project_id).one_or_none()
+    project = db.query(Project).filter(Project.id == project_id).first()
     if project is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
     
@@ -44,15 +43,15 @@ def post_path(project_id: int, body: PathInputModel, db: Session = Depends(get_d
 @router.get("/{path_id}", response_model=PathResponseModel)
 def get_project_path(project_id: int, path_id: int, db: Session = Depends(get_db)):
     """Get path with `path_id` from project with `project_id`"""
-    path = db.query(Path).filter(Path.project_id == project_id, Path.id == path_id).one_or_none()
+    path = db.query(Path).filter(Path.project_id == project_id, Path.id == path_id).first()
     if path is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Path with ID: {path_id} in project with ID: {project_id} not found")
     path = PathResponseModel.model_validate(path)
     return path
 
 
-@router.put("/{path_id}", response_model=PathResponseModel)
-def put_project_path(project_id: int, path_id: int, body: PathInputModel, db: Session = Depends(get_db)):
+@router.patch("/{path_id}", response_model=PathResponseModel)
+def patch_path(project_id: int, path_id: int, body: PathPatchModel, db: Session = Depends(get_db)):
     """Update path with `path_id` from project with `project_id`"""
     project = db.query(Project).filter(Project.id == project_id).one_or_none()
     if project is None:

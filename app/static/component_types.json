@@ -1,0 +1,86 @@
+[
+    {
+        "type": "Amplifier"
+    },
+    {
+        "type": "Antenna"
+    },
+    {
+        "type": "Attenuator"
+    },
+    {
+        "type": "Balun"
+    },
+    {
+        "type": "Circulator"
+    },
+    {
+        "type": "Coupler"
+    },
+    {
+        "type": "Demodulator"
+    },
+    {
+        "type": "Detector"
+    },
+    {
+        "type": "Diplexer"
+    },
+    {
+        "type": "Duplexer"
+    },
+    {
+        "type": "Filter"
+    },
+    {
+        "type": "Frequency Divider"
+    },
+    {
+        "type": "Frequency Multiplier"
+    },
+    {
+        "type": "Isolator"
+    },
+    {
+        "type": "Limiter"
+    },
+    {
+        "type": "Mixer"
+    },
+    {
+        "type": "Modulator"
+    },
+    {
+        "type": "Oscillator"
+    },
+    {
+        "type": "Phase Shifter"
+    },
+    {
+        "type": "Phase-Locked Loop (PLL)"
+    },
+    {
+        "type": "Power Amplifier (PA)"
+    },
+    {
+        "type": "Power Divider/Combiner"
+    },
+    {
+        "type": "Receiver"
+    },
+    {
+        "type": "Switch"
+    },
+    {
+        "type": "Synthesizer"
+    },
+    {
+        "type": "Transceiver"
+    },
+    {
+        "type": "Transmitter"
+    },
+    {
+        "type": "Voltage-Controlled Oscillator (VCO)"
+    }
+]
