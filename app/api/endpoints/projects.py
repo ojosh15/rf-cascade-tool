@@ -5,9 +5,9 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from database import get_db
-from database.models.projects import *
-from database.models.paths import *
+from app.database import get_db
+from app.database.models.projects import *
+from app.database.models.paths import *
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 

@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from app.database import Session
 
 def test_get_projects(test_app):
     response = test_app.get("/api/v1/projects")

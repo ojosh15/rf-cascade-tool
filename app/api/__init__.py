@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from api.endpoints import projects, paths, components
-from config import config
+from app.api.endpoints import projects, paths, components
+from app.config import config
 
 router = APIRouter(prefix=config.API_PREFIX)
 

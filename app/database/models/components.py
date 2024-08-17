@@ -4,8 +4,8 @@ from datetime import datetime
 from sqlalchemy import ForeignKey, JSON, String, Boolean, BigInteger, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from database.models import SQLAlchemyBase
-from database.models.sources import SourceEnum
+from app.database.models import SQLAlchemyBase
+from app.database.models.sources import SourceEnum
 from pydantic import ConfigDict, BaseModel as PydanticBase
 
 

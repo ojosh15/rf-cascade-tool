@@ -1,13 +1,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from config import config
-from database.models import SQLAlchemyBase
-from database.models.projects import *
-from database.models.paths import *
-from database.models.components import *
-from database.models.sources import *
-from database.models.stackups import *
+from app.config import config
+from app.database.models import SQLAlchemyBase
+from app.database.models.projects import *
+from app.database.models.paths import *
+from app.database.models.components import *
+from app.database.models.sources import *
+from app.database.models.stackups import *
 
 
 # Log in to the database and create tables

@@ -5,10 +5,10 @@ from pydantic import ConfigDict, BaseModel as PydanticBase
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from database.models import SQLAlchemyBase
+from app.database.models import SQLAlchemyBase
 
 if TYPE_CHECKING:
-    from database.models.paths import Path
+    from app.database.models.paths import Path
 
 class Project(SQLAlchemyBase):
     __tablename__ = "projects"

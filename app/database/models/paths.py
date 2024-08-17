@@ -6,10 +6,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.ext.orderinglist import ordering_list
 
 from pydantic import ConfigDict, BaseModel as PydanticBase
-from database.models import SQLAlchemyBase
+from app.database.models import SQLAlchemyBase
 
 if TYPE_CHECKING:
-    from database.models.stackups import Stackup
+    from app.database.models.stackups import Stackup
 
 class Path(SQLAlchemyBase):
     __tablename__ = "paths"

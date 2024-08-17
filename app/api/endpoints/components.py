@@ -5,8 +5,8 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from database import get_db
-from database.models.components import *
+from app.database import get_db
+from app.database.models.components import *
 
 router = APIRouter(prefix='/components', tags=["Components"])
 

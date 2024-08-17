@@ -1,12 +1,20 @@
 import logging
 import uvicorn
+from app.register import register_app
 
-if __name__ == "__main__":
+app = register_app()
+
+def main():
     logging.basicConfig(level=logging.INFO)
 
-    uvicorn.run(
-        app="fastapi_app:app",
-        host="0.0.0.0",
-        port=5000,
-        reload=True,
-    )
+    try:
+        config = uvicorn.Config(
+                                app='app.main:app',
+                                host="0.0.0.0",
+                                port=5000,
+                                reload=True,
+                            )
+        server = uvicorn.Server(config)
+        server.run()
+    except Exception as e:
+        raise e
