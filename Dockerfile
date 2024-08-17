@@ -1,6 +1,6 @@
 FROM python:3.10-alpine
 
-WORKDIR /app
+WORKDIR /workspace
 
 # Install requirements
 COPY ./requirements.txt .
@@ -8,6 +8,13 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     rm requirements.txt
 
-COPY /app /app
+COPY /app /workspace/app
+COPY static/* /static
+COPY ./entrypoint.sh .
 
-CMD python /app/main.py
+ENV PYTHONPATH="/workspace"
+
+ENTRYPOINT ["/bin/sh", "entrypoint.sh"]
+
+# CMD python /workspace/app/main.py
+CMD ash

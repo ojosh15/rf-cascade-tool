@@ -2,6 +2,7 @@ services:
   api:
     build: .
     container_name: rf-cascade-tool-api
+    restart: always
     volumes:
       - .:/workspace
     environment:

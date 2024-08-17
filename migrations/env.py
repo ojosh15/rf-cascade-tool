@@ -9,8 +9,8 @@ from alembic import context
 
 sys.path.append('../')
 
-from config import config as app_config
-from database import SQLAlchemyBase
+from app.config import config as app_config
+from app.database import SQLAlchemyBase
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
