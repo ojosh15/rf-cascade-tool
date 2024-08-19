@@ -14,31 +14,31 @@ from app.database.models.stackups import *
 engine = create_engine(str(config.POSTGRES_URL))
 LocalSession = sessionmaker(bind=engine, expire_on_commit=False)
 
-if config.CLEAR_DB:
-    SQLAlchemyBase.metadata.drop_all(engine)
+# if config.CLEAR_DB:
+#     SQLAlchemyBase.metadata.drop_all(engine)
 
-SQLAlchemyBase.metadata.create_all(engine)
+# SQLAlchemyBase.metadata.create_all(engine)
 
-with LocalSession() as session, session.begin():
-    types = [
-        'Attenuator',
-        'Amplifier',
-        'Coupler'
-    ]
-    for type in types:
-        type_instance = ComponentType(type=type)
-        session.add(type_instance)
+# with LocalSession() as session, session.begin():
+#     types = [
+#         'Attenuator',
+#         'Amplifier',
+#         'Coupler'
+#     ]
+#     for type in types:
+#         type_instance = ComponentType(type=type)
+#         session.add(type_instance)
 
-    component_data = ComponentData(
-      data_source = SourceEnum.SIMULATED,
-      gain = {},
-      nf = {},
-      p1db = {},
-      ip2 = {},
-      ip3 = {},
-      max_input = {}
-    )
-    session.add(component_data)
+#     component_data = ComponentData(
+#       data_source = SourceEnum.SIMULATED,
+#       gain = {},
+#       nf = {},
+#       p1db = {},
+#       ip2 = {},
+#       ip3 = {},
+#       max_input = {}
+#     )
+#     session.add(component_data)
 
 def create_tables():
     SQLAlchemyBase.metadata.create_all(engine)

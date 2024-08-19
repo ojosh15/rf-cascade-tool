@@ -8,6 +8,8 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     rm requirements.txt
 
+RUN mkdir -p /static
+
 COPY /app /workspace/app
 COPY static/* /static
 COPY ./entrypoint.sh .

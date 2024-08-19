@@ -5,6 +5,7 @@ services:
     restart: always
     volumes:
       - .:/workspace
+      - ./static:/static
     environment:
       - POSTGRES_HOST=rf-cascade-tool-db
       - POSTGRES_USER=admin
