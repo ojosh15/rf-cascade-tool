@@ -1,7 +1,7 @@
 import json
 from app.database import LocalSession
 from sqlalchemy.orm import Session
-from app.crud.component_types import *
+from app.crud.crud_component_types import *
 
 
 def prepopulate_component_types(db: Session):

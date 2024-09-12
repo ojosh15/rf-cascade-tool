@@ -114,6 +114,10 @@ class ComponentTypeInputModel(PydanticBase):
     type: str
 
 
+class ComponentTypePatchModel(PydanticBase):
+    type: str | None = None
+
+
 class ComponentTypeResponseModel(ComponentTypeInputModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -130,6 +134,19 @@ class ComponentInputModel(PydanticBase):
     is_active: bool = False
     is_variable: bool = False
     description: Optional[str]
+
+
+class ComponentPatchModel(PydanticBase):
+    model: str | None = None
+    manufacturer: str | None = None
+    serial_no: str | None = None
+    component_type_id: int | None = None
+    num_ports: int | None = None
+    start_freq: int | None = None
+    stop_freq: int | None = None
+    is_active: bool | None = None
+    is_variable: bool | None = None
+    description: str | None = None
 
 
 class ComponentResponseModel(ComponentInputModel):
@@ -149,6 +166,16 @@ class ComponentDataInputModel(PydanticBase):
     max_input: Optional[dict]
 
 
+class ComponentDataPatchModel(PydanticBase):
+    data_source: SourceEnum | None = None
+    gain: dict | None = None
+    nf: dict | None = None
+    p1db: dict | None = None
+    ip2: dict | None = None
+    ip3: dict | None = None
+    max_input: dict | None = None
+
+
 class ComponentDataResponseModel(ComponentDataInputModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -161,6 +188,14 @@ class ComponentVersionInputModel(PydanticBase):
     # is_verified - set to false by endpoint
     # component_id - derived from endpoint URL path parameters
     
+
+class ComponentVersionPatchModel(PydanticBase):
+    change_note: str | None = None
+    component_data_id: int | None = None
+    version: int | None = None
+    is_verified: bool | None = None
+    component_id: int | None = None
+
 
 class ComponentVersionResponseModel(ComponentVersionInputModel):
     model_config = ConfigDict(from_attributes=True)

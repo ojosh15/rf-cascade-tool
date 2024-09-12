@@ -7,25 +7,25 @@ from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.database.models.components import *
+from app.crud.crud_component_types import *
+from app.crud.crud_components import *
 
 router = APIRouter(prefix='/components', tags=["Components"])
 
 @router.get("", response_model=list[ComponentResponseModel])
-def get_components(db: Session = Depends(get_db)):
+def get_components_edpt(db: Session = Depends(get_db)):
     """Get all components"""
-    stmt = select(Component)
-    components = db.execute(stmt).scalars().all()
+    components = get_components(db=db)
     components = [ComponentResponseModel.model_validate(component) for component in components]
     return components
 
 
 @router.post("", status_code=HTTPStatus.CREATED, response_model=ComponentResponseModel)
-def post_component(body: ComponentInputModel, db: Session = Depends(get_db)):
+def post_component_edpt(body: ComponentInputModel, db: Session = Depends(get_db)):
     """Create a new component"""
     component = Component(**body.model_dump())
     try:
-        db.add(component)
-        db.flush()  # Needed to get the autoincremented id into the radio object
+        component = add_component(db=db,comp=component)
         ComponentResponseModel.model_validate(component)
     except IntegrityError as e:
         err_msg = str(e)
@@ -35,26 +35,30 @@ def post_component(body: ComponentInputModel, db: Session = Depends(get_db)):
     return component
 
 
-@router.delete("")
-def delete_components(db: Session = Depends(get_db)):
+@router.delete("", status_code=HTTPStatus.NO_CONTENT)
+def delete_components_edpt(db: Session = Depends(get_db)):
     """Delete all components"""
-    num_deleted = db.query(Component).delete()
-    return {"num_deleted": num_deleted}
+    delete_components(db=db)
+    return
+
+
+@router.get("/{component_id}", response_model=ComponentResponseModel)
+def get_component_edpt(component_id: int, db: Session = Depends(get_db)):
+    """Get a component with `component_id`"""
+    component = get_component_by_id(db=db,comp_id=component_id)
+    if component is None:
+        raise HTTPException(HTTPStatus.NOT_FOUND, detail=f"Component with ID: {component_id} not found")
+    return ComponentResponseModel.model_validate(component)
 
 
 @router.put("/{component_id}", response_model=ComponentResponseModel)
-def update_component(component_id: int, body: ComponentInputModel, db: Session = Depends(get_db)):
+def update_component_edpt(component_id: int, component: ComponentPatchModel, db: Session = Depends(get_db)):
     """Update component with `component_id`"""
-    component = db.query(Component).filter(Component.id == component_id).one_or_none()
-    if component is None:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Component with ID: {component_id} not found")
-    for field, value in body.model_dump().items():
-        setattr(component, field, value)
-
     try:
-        db.flush()
+        component = update_component(db=db,comp_id=component_id,comp=component)
+        if component is None:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Component with ID: {component_id} not found")
         component = ComponentResponseModel.model_validate(component)
-        db.commit()
     except IntegrityError as e:
         err_msg = str(e)
 
@@ -63,8 +67,16 @@ def update_component(component_id: int, body: ComponentInputModel, db: Session =
     return component
 
 
+@router.delete("/{component_id}", status_code=HTTPStatus.NO_CONTENT)
+def delete_component_edpt(component_id: int, db: Session = Depends(get_db)):
+    success = delete_component(db=db, comp_id=component_id)
+    if not success:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Component type with ID: {component_id} not found")
+    return
+
+
 @router.post("/{component_id}/data", response_model=ComponentDataResponseModel)
-def post_component_data(component_id: int, body: ComponentDataInputModel, db: Session = Depends(get_db)):
+def post_component_data_edpt(component_id: int, body: ComponentDataInputModel, db: Session = Depends(get_db)):
     """Create data entry for component with `component_id`"""
     component_data = ComponentData(**body.model_dump())
 
@@ -81,7 +93,7 @@ def post_component_data(component_id: int, body: ComponentDataInputModel, db: Se
 
 
 @router.get("/{component_id}/versions}", response_model=list[ComponentVersionResponseModel])
-def get_component_versions(component_id: int, db: Session = Depends(get_db)):
+def get_component_versions_edpt(component_id: int, db: Session = Depends(get_db)):
     """Get versions of component with `component_id`"""
     component = db.query(Component).filter(Component.id == component_id).one_or_none()
     if component is None:
@@ -111,20 +123,20 @@ def post_component_version(component_id: int, body: ComponentVersionInputModel, 
 
 
 @router.get("/types", response_model=list[ComponentTypeResponseModel])
-def get_component_types(db: Session = Depends(get_db)):
+def get_component_types_edpt(db: Session = Depends(get_db)):
     """Get component types"""
-    component_types = db.query(ComponentType).all()
+    component_types = get_component_types(db=db)
     component_types = [ComponentTypeResponseModel.model_validate(component_type) for component_type in component_types]
     return component_types
 
 
-@router.post("/types", response_model=ComponentTypeResponseModel)
-def post_component_type(body: ComponentTypeInputModel, db: Session = Depends(get_db)):
+@router.post("/types", status_code=HTTPStatus.CREATED, response_model=ComponentTypeResponseModel)
+def post_component_type_edpt(body: ComponentTypeInputModel, db: Session = Depends(get_db)):
     """Create a component type"""
     component_type = ComponentType(**body.model_dump())
+    
     try:
-        db.add(component_type)
-        db.flush()  # Needed to get the autoincremented id into the component_type object
+        component_type = add_component_type(db=db,comp_type=component_type)
         component_type = ComponentTypeResponseModel.model_validate(component_type)
     except IntegrityError as e:
         err_msg = str(e)
@@ -138,15 +150,15 @@ def post_component_type(body: ComponentTypeInputModel, db: Session = Depends(get
     return component_type
 
 
-@router.delete("/types")
-def delete_component_types(db: Session = Depends(get_db)):
-    num_deleted = db.query(ComponentType).delete()
-    return {"num_deleted": num_deleted}
+@router.delete("/types", status_code=HTTPStatus.NO_CONTENT)
+def delete_component_types_edpt(db: Session = Depends(get_db)):
+    delete_component_types(db=db)
+    return
 
 
-@router.delete("/types/{type_id}")
-def delete_component_type(type_id: int, db: Session = Depends(get_db)):
-    num_deleted = db.query(ComponentType).filter(ComponentType.id == type_id).delete()
-    if num_deleted == 0:
+@router.delete("/types/{type_id}", status_code=HTTPStatus.NO_CONTENT)
+def delete_component_type_edpt(type_id: int, db: Session = Depends(get_db)):
+    success = delete_component_type(db=db, type_id=type_id)
+    if not success:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Component type with ID: {type_id} not found")
-    return {"num_deleted": num_deleted}
+    return
