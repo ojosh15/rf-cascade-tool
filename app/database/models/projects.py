@@ -23,7 +23,7 @@ class Project(SQLAlchemyBase):
     modified_at: Mapped[datetime] = mapped_column(default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # Relationships
-    paths: Mapped[List["Path"]] = relationship("Path", back_populates="project")
+    paths: Mapped[List["Path"]] = relationship("Path", back_populates="project", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"Project(id={self.id!r}, name={self.name!r}, description={self.description!r}, created_at={self.created_at!r}, modified_at={self.modified_at!r})"

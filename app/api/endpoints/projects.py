@@ -8,69 +8,33 @@ from sqlalchemy.exc import IntegrityError
 from app.database import get_db
 from app.database.models.projects import *
 from app.database.models.paths import *
+from app.crud.crud_projects import *
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
-@router.get("", response_model=list[ProjectResponseModel])
-def get_projects(db: Session = Depends(get_db)):
+@router.get("", response_model=list[ProjectResponseModel], summary="Get all projects")
+def get_projects_edpt(db: Session = Depends(get_db)):
     """Get all projects"""
-    projects = db.query(Project).all()
+    projects = get_projects(db=db)
     projects = [ProjectResponseModel.model_validate(project) for project in projects]
     return projects
 
 
-@router.delete("")
-def delete_projects(db: Session = Depends(get_db)):
+@router.delete("", status_code=HTTPStatus.NO_CONTENT, summary="Delete all projects")
+def delete_projects_edpt(db: Session = Depends(get_db)):
     """Delete all projects"""
-    num_deleted = db.query(Project).delete()       
-    return {"num_deleted": num_deleted}
+    delete_projects(db=db)
+    db.commit()
+    return
 
 
-@router.post("", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel)
-def post_project(body: ProjectInputModel, db: Session = Depends(get_db)):
+@router.post("", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel, summary="Create a new project")
+def post_project_edpt(body: ProjectInputModel, db: Session = Depends(get_db)):
     """Create a project"""
     project = Project(**body.model_dump())
     try:
-        db.add(project)
-        db.commit() # Update database if changes from session (needed for autoincremented ID)
-        db.refresh(project)
-        project = ProjectResponseModel.model_validate(project)
-    except IntegrityError as e:
-        err_msg = str(e)
-
-        # If the project already exists, raise a 409 Conflict
-        if "UniqueViolation" in err_msg:
-            raise HTTPException(status_code=HTTPStatus.CONFLICT, detail=f"Project with name: {project.name} already exists")
-
-        # If it wasn't a unique constraint, something else went wrong
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
-    return project
-
-
-@router.get("/{project_id}", response_model=ProjectResponseModel)
-def get_project(project_id: int, db: Session = Depends(get_db)):
-    """Get project with `project_id`"""
-    project = db.query(Project).filter(Project.id == project_id).one_or_none()
-    if project is None:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
-    project = ProjectResponseModel.model_validate(project)
-    return project
-
-
-@router.patch("/{project_id}", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel)
-def patch_project(project_id: int, body: ProjectPatchModel, db: Session = Depends(get_db)):
-    """Update project with `project_id`"""
-    project = db.query(Project).filter(Project.id == project_id).one_or_none()
-    if project is None:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
-    for field, value in body.model_dump().items():
-        if value is not None:
-            setattr(project, field, value)
-
-    try:
-        db.flush()
-        project = ProjectResponseModel.model_validate(project)
+        project = add_project(db=db,project=project)
         db.commit()
     except IntegrityError as e:
         err_msg = str(e)
@@ -78,43 +42,72 @@ def patch_project(project_id: int, body: ProjectPatchModel, db: Session = Depend
         # If the project already exists, raise a 409 Conflict
         if "UniqueViolation" in err_msg:
             raise HTTPException(status_code=HTTPStatus.CONFLICT, detail=f"Project with name: {project.name} already exists")
-        
+
         # If it wasn't a unique constraint, something else went wrong
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
+    
+    project = ProjectResponseModel.model_validate(project)
     return project
 
 
-@router.delete("/{project_id}")
-def delete_project(project_id: int, db: Session = Depends(get_db)):
-    """Delete project with `project_id`"""
-    num_deleted = db.query(Project).filter(Project.id == project_id).delete()
-    if num_deleted == 0:
+@router.get("/{project_id}", response_model=ProjectResponseModel, summary="Get a project by ID")
+def get_project_edpt(project_id: int, db: Session = Depends(get_db)):
+    """Get project with `project_id`"""
+    project = get_project_by_id(db=db,project_id=project_id)
+    if project is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
-    return {"num_deleted": num_deleted}
+    return ProjectResponseModel.model_validate(project)
 
 
-@router.get("/{project_id}/paths", response_model=list[PathResponseModel])
-def get_project_paths(project_id: int, db: Session = Depends(get_db)):
+@router.patch("/{project_id}", status_code=HTTPStatus.CREATED, response_model=ProjectResponseModel, summary="Update a project by ID")
+def patch_project_edpt(project_id: int, updated_project: ProjectPatchModel, db: Session = Depends(get_db)):
+    """Update project with `project_id`"""
+    project = get_project_by_id(db,project_id)
+    if project is None:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
+    try:
+        project = update_project(db=db,project=project,project_patch=updated_project)
+        db.commit()
+    except IntegrityError as e:
+        err_msg = str(e)
+
+        # If the project already exists, raise a 409 Conflict
+        if "UniqueViolation" in err_msg:
+            raise HTTPException(status_code=HTTPStatus.CONFLICT, detail=f"Project with name: {updated_project.name} already exists")
+        
+        # If it wasn't a unique constraint, something else went wrong
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
+    return ProjectResponseModel.model_validate(project)
+
+
+@router.delete("/{project_id}", status_code=HTTPStatus.NO_CONTENT, summary="Delete a project by ID")
+def delete_project_edpt(project_id: int, db: Session = Depends(get_db)):
+    """Delete project with `project_id`"""
+    deleted = delete_project(db=db,project_id=project_id)
+    if deleted:
+        db.commit()
+    return
+
+
+@router.get("/{project_id}/paths", response_model=list[PathResponseModel], summary="Get all paths for a project")
+def get_project_paths_edpt(project_id: int, db: Session = Depends(get_db)):
     """Get paths for project with `project_id`"""
-    project = db.query(Project).filter(Project.id == project_id).one_or_none()
+    project = get_project_by_id(db=db,project_id=project_id)
     if project is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
     paths = [PathResponseModel.model_validate(path) for path in project.paths]
     return paths
 
 
-@router.delete("/{project_id}/paths")
-def delete_project_paths(project_id: int, db: Session = Depends(get_db)):
+@router.delete("/{project_id}/paths", status_code=HTTPStatus.NO_CONTENT, summary="Delete all the paths for a project")
+def delete_project_paths_edpt(project_id: int, db: Session = Depends(get_db)):
     """Delete paths for project with `project_id`"""
-    project = db.query(Project).filter(Project.id == project_id).one_or_none()
+    project = get_project_by_id(db=db,project_id=project_id)
     if project is None:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"No project found with project ID: {project_id}")
-    initial_path_count = len(project.paths)
     
     # Delete associated paths for project
-    for path in project.paths:
-        db.delete(path)
-
-    num_deleted = initial_path_count - len(project.paths) # Get the number of paths deleted
+    project.paths = []
     project.modified_at = func.current_timestamp()
-    return {"num_deleted": num_deleted}
+    db.commit()
+    return

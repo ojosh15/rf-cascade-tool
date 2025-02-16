@@ -28,7 +28,7 @@ class Path(SQLAlchemyBase):
     modified_at: Mapped[datetime] = mapped_column(default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     # Relationships
-    stackups: Mapped[List["Stackup"]] = relationship("Stackup", back_populates="path")
+    stackups: Mapped[List["Stackup"]] = relationship("Stackup", back_populates="path", cascade="all, delete-orphan")
     project = relationship("Project", back_populates="paths")
 
     def __repr__(self) -> str:
@@ -50,7 +50,6 @@ class PathResponseModel(PathInputModel):
 
 class PathPatchModel(PydanticBase):
     model_config = ConfigDict(from_attributes=True)
-    project_id: int | None = None
     input: str | None = None
     output: str | None = None
     description: str | None = None

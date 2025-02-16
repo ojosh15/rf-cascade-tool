@@ -7,7 +7,7 @@ from sqlalchemy.ext.orderinglist import ordering_list
 
 from pydantic import ConfigDict, BaseModel as PydanticBase
 from app.database.models import SQLAlchemyBase
-from app.database.models.components import ComponentVersion, ComponentResponseModel
+from app.database.models.components import ComponentVersion, ComponentVersionResponseModel
 
 if TYPE_CHECKING:
     from app.database.models.paths import Path
@@ -34,13 +34,13 @@ class Stackup(SQLAlchemyBase):
 # Pydantic Models
 class StackupInputModel(PydanticBase):
     model_config = ConfigDict(from_attributes=True)
-    component_id: int
+    component_version_id: int
 
 class StackupResponseModel(StackupInputModel):
     model_config = ConfigDict(from_attributes=True)
     path_id: int
     next_stackup_id: int | None = None
-    component: ComponentResponseModel
+    component_version: ComponentVersionResponseModel
     id: int
 
 class StackupPatchModel(PydanticBase):

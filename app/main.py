@@ -8,13 +8,11 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     try:
-        config = uvicorn.Config(
-                                app='app.main:app',
-                                host="0.0.0.0",
-                                port=5000,
-                                reload=True,
-                            )
-        server = uvicorn.Server(config)
-        server.run()
+        uvicorn.run(
+            app="app.main:app",
+            host="0.0.0.0",
+            port=5000,
+            reload=True,
+        )
     except Exception as e:
         raise e

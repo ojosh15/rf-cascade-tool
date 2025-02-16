@@ -89,10 +89,11 @@ def post_component_data_edpt(component_id: int, body: ComponentDataInputModel, d
 
         # If it wasn't a unique or foreign key constraint, something else went wrong
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
+    db.commit()
     return component_data
 
 
-@router.get("/{component_id}/versions}", response_model=list[ComponentVersionResponseModel])
+@router.get("/{component_id}/versions", response_model=list[ComponentVersionResponseModel])
 def get_component_versions_edpt(component_id: int, db: Session = Depends(get_db)):
     """Get versions of component with `component_id`"""
     component = db.query(Component).filter(Component.id == component_id).one_or_none()
@@ -102,7 +103,7 @@ def get_component_versions_edpt(component_id: int, db: Session = Depends(get_db)
     return component_versions
 
 
-@router.post("/{component_id}/versions}", response_model=ComponentVersionResponseModel)
+@router.post("/{component_id}/versions", response_model=ComponentVersionResponseModel)
 def post_component_version(component_id: int, body: ComponentVersionInputModel, db: Session = Depends(get_db)):
     """Create version for component with `component_id`"""
     version = db.query(func.max(ComponentVersion.version)).filter(ComponentVersion.component_id == component_id).scalar()
@@ -119,6 +120,7 @@ def post_component_version(component_id: int, body: ComponentVersionInputModel, 
 
         # If it wasn't a unique or foreign key constraint, something else went wrong
         raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
+    db.commit()
     return component_version
 
 

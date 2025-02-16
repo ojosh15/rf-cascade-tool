@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.models import SQLAlchemyBase
 from app.database.models.sources import SourceEnum
-from pydantic import ConfigDict, BaseModel as PydanticBase
+from pydantic import ConfigDict, BaseModel as PydanticBase, field_validator, model_validator
 
 
 class Component(SQLAlchemyBase):
@@ -156,24 +156,52 @@ class ComponentResponseModel(ComponentInputModel):
     id: int
 
 
+class DataModel(PydanticBase):
+    freq: list[int]
+    mag: list[float]
+
+    # Validator to ensure freq and mag have at least two elements
+    @field_validator("freq", "mag")
+    def validate_min_length(cls, v, field):
+        if len(v) < 2:
+            raise ValueError(f"{field.name} must have at least two elements.")
+        return v
+
+    # Validator to ensure freq is in ascending order
+    @field_validator("freq")
+    def validate_ascending_order(cls, v):
+        if v != sorted(v):
+            raise ValueError("freq must be in ascending order.")
+        return v
+
+    # Model-level validator to check that freq and mag have the same length
+    @model_validator(mode="after")
+    def validate_equal_length(cls, values):
+        freq = values.freq
+        mag = values.mag
+        if len(freq) != len(mag):
+            raise ValueError("freq and mag must have the same length.")
+        return values
+
+
 class ComponentDataInputModel(PydanticBase):
     data_source: SourceEnum
-    gain: Optional[dict]
-    nf: Optional[dict]
-    p1db: Optional[dict]
-    ip2: Optional[dict]
-    ip3: Optional[dict]
-    max_input: Optional[dict]
+    gain: DataModel | None = None
+    nf: DataModel | None = None
+    p1db: DataModel | None = None
+    ip2: DataModel | None = None
+    ip3: DataModel | None = None
+    max_input: DataModel | None = None
 
 
 class ComponentDataPatchModel(PydanticBase):
     data_source: SourceEnum | None = None
-    gain: dict | None = None
-    nf: dict | None = None
-    p1db: dict | None = None
-    ip2: dict | None = None
-    ip3: dict | None = None
-    max_input: dict | None = None
+    gain: DataModel | None = None
+    nf: DataModel | None = None
+    p1db: DataModel | None = None
+    ip2: DataModel | None = None
+    ip3: DataModel | None = None
+    max_input: DataModel | None = None
 
 
 class ComponentDataResponseModel(ComponentDataInputModel):
