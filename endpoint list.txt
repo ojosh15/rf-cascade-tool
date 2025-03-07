@@ -1,4 +1,0 @@
-----------PROJECTS----------
- GET - /projects
- POST - /projects
- DELETE - /projects

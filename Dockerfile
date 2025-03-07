@@ -9,7 +9,7 @@ RUN pip install --upgrade pip && \
     rm requirements.txt
 
 COPY /app /workspace/app
-COPY /static/* /static
+COPY /static /static
 COPY ./entrypoint.sh .
 
 ENV PYTHONPATH="/workspace"

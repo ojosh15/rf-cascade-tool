@@ -153,6 +153,7 @@ class ComponentResponseModel(ComponentInputModel):
     created_at: datetime
     modified_at: datetime
     model_config = ConfigDict(from_attributes=True)
+    type: ComponentTypeResponseModel
     id: int
 
 

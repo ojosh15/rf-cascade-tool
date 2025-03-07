@@ -21,7 +21,7 @@ def prepopulate_component_types(db: Session):
             current_comp = current_comps_dict[comp_type.type]
             update_component_type(db=db, comp_type_id=current_comp.id, comp_type=comp_type)
         else:
-            add_component_type(db=db, comp_type=comp_type)
+            add_component_type(db, ComponentType(**comp_type.model_dump()))
     
     db.close()
 
