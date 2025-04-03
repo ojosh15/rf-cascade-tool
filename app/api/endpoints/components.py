@@ -75,22 +75,47 @@ def delete_component_edpt(component_id: int, db: Session = Depends(get_db)):
     return
 
 
-@router.post("/{component_id}/data", response_model=ComponentDataResponseModel)
-def post_component_data_edpt(component_id: int, body: ComponentDataInputModel, db: Session = Depends(get_db)):
+@router.post("/{component_id}/data", response_model=ComponentVersionResponseModel)
+def post_component_data_edpt(component_id: int, body: ComponentVersionInputModel, db: Session = Depends(get_db)):
     """Create data entry for component with `component_id`"""
-    component_data = ComponentData(**body.model_dump())
+    component = get_component_by_id(db, component_id)
+    if component is None:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"Component type with ID: {component_id} not found")
+    
+    # Calc next version
+    latest_version = max(component.component_versions, key=lambda cv: cv.version, default=None)
+    if latest_version:
+        next_version = latest_version.version + 1
+    else:
+        next_version = 0
 
-    try:
-        db.add(component_data)
-        db.flush()
-        component_data = ComponentDataResponseModel.model_validate(component_data)
-    except IntegrityError as e:
-        err_msg = str(e)
-
-        # If it wasn't a unique or foreign key constraint, something else went wrong
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err_msg)
+    component_data = ComponentData(**body.component_data.model_dump())
+    component_version = ComponentVersion(**body.model_dump(exclude="component_data"),component_data=component_data,version=next_version)
+    component.component_versions.append(component_version)
     db.commit()
-    return component_data
+    return ComponentVersionResponseModel.model_validate(component_version, from_attributes=True)
+
+
+@router.get("/{component_id}/data", response_model=ComponentDataResponseModel)
+def get_component_data_edpt(component_id: int, version: int | None = None, db: Session = Depends(get_db)):
+    component = get_component_by_id(db, component_id)
+
+    if component is None:
+        raise HTTPException(HTTPStatus.NOT_FOUND, detail="Component with id = {component_id} does not exist")
+    
+    if not component.component_versions:
+        raise HTTPException(HTTPStatus.NOT_FOUND, detail="RF data for component with id = {component_id} does not exist")
+    
+    if version is not None:
+        component_version = next((cv for cv in component.component_versions if cv.version == version), None)
+    else:
+        component_version = max(component.component_versions, key=lambda cv: cv.version, default=None)
+    
+    if component_version is None:
+        raise HTTPException(HTTPStatus.NOT_FOUND, detail="Version = {version} does not exist for component with id = {component_id}")
+    
+    return ComponentDataResponseModel.model_validate(component_version.component_data)
+
 
 
 @router.get("/{component_id}/versions", response_model=list[ComponentVersionResponseModel])

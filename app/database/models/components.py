@@ -50,7 +50,7 @@ class ComponentVersion(SQLAlchemyBase):
     # Columns
     version: Mapped[int] = mapped_column()
     change_note: Mapped[str] = mapped_column()
-    is_verified: Mapped[bool] = mapped_column()
+    is_verified: Mapped[bool] = mapped_column(default=False)
 
     # Relationships
     component: Mapped["Component"] = relationship("Component", back_populates="component_versions")
@@ -66,12 +66,12 @@ class ComponentData(SQLAlchemyBase):
 
     # Columns
     data_source: Mapped[SourceEnum] = mapped_column(default=SourceEnum.SIMULATED)
-    gain: Mapped[Optional[dict]] = mapped_column(JSON)
-    nf: Mapped[Optional[dict]] = mapped_column(JSON)
-    ip2: Mapped[Optional[dict]] = mapped_column(JSON)
-    ip3: Mapped[Optional[dict]] = mapped_column(JSON)
-    p1db: Mapped[Optional[dict]] = mapped_column(JSON)
-    max_input: Mapped[Optional[dict]] = mapped_column(JSON)
+    gain: Mapped[dict | None] = mapped_column(JSON)
+    nf: Mapped[dict | None] = mapped_column(JSON)
+    ip2: Mapped[dict | None] = mapped_column(JSON)
+    ip3: Mapped[dict | None] = mapped_column(JSON)
+    p1db: Mapped[dict | None] = mapped_column(JSON)
+    max_input: Mapped[dict | None] = mapped_column(JSON)
 
     # Relationships
     component_version: Mapped["ComponentVersion"] = relationship("ComponentVersion", back_populates="component_data")
@@ -162,11 +162,11 @@ class DataModel(PydanticBase):
     mag: list[float]
 
     # Validator to ensure freq and mag have at least two elements
-    @field_validator("freq", "mag")
-    def validate_min_length(cls, v, field):
-        if len(v) < 2:
-            raise ValueError(f"{field.name} must have at least two elements.")
-        return v
+    # @field_validator("freq", "mag")
+    # def validate_min_length(cls, v, field):
+    #     if len(v) < 2:
+    #         raise ValueError(f"{field} must have at least two elements.")
+    #     return v
 
     # Validator to ensure freq is in ascending order
     @field_validator("freq")
@@ -211,19 +211,19 @@ class ComponentDataResponseModel(ComponentDataInputModel):
 
 
 class ComponentVersionInputModel(PydanticBase):
-    change_note: str = "Initial component version"
-    component_data_id: int = 1
+    change_note: str | None = "Initial component version"
+    component_data: ComponentDataInputModel
     # version - incremented through endpoint logic
     # is_verified - set to false by endpoint
     # component_id - derived from endpoint URL path parameters
     
 
 class ComponentVersionPatchModel(PydanticBase):
-    change_note: str | None = None
-    component_data_id: int | None = None
-    version: int | None = None
+    change_note: str | None = None # If the approver has any updates or comments
     is_verified: bool | None = None
-    component_id: int | None = None
+    # component_id - Not changeable
+    # component_data_id - Not changeable
+    # version - Incremented by database
 
 
 class ComponentVersionResponseModel(ComponentVersionInputModel):
@@ -231,7 +231,6 @@ class ComponentVersionResponseModel(ComponentVersionInputModel):
     version: int
     is_verified: bool
     component_id: int
-    component_data: ComponentDataResponseModel
     id: int
 
 
