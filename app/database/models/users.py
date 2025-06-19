@@ -14,6 +14,7 @@ class User(SQLAlchemyBase):
 
     # Columns
     email: Mapped[str] = mapped_column(unique=True)
+    hashed_password: Mapped[str] = mapped_column()
     full_name: Mapped[str] = mapped_column()
     disabled: Mapped[bool] = mapped_column(default=False)
 
@@ -43,3 +44,10 @@ class UserPatchModel(PydanticBase):
     email: str | None = None
     full_name: str | None = None
     disabled: bool | None = None
+
+class Token(PydanticBase):
+    access_token: str
+    token_type: str
+
+class TokenData(PydanticBase):
+    email: str | None = None
